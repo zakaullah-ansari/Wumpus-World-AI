@@ -14,11 +14,13 @@ mixin RiskEvaluationMixin {
   int score = 0; // mixins CAN hold their own state in Dart.
 
   static const int moveCost = -1;
+  static const int arrowCost = -10;
   static const int goldReward = 1000;
   static const int deathPenalty = -1000;
   static const int climbOutBonus = 10;
 
   void applyMoveCost() => score += moveCost;
+  void applyArrowCost() => score += arrowCost;
   void applyGoldBonus() => score += goldReward;
   void applyDeathPenalty() => score += deathPenalty;
   void applyClimbOutBonus() => score += climbOutBonus;

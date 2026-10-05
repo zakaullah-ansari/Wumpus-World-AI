@@ -28,7 +28,7 @@ class WumpusWorldGenerator {
     _placeOnSafeRandomCell(grid, (cell) => cell.hasWumpus = true);
     _placeOnSafeRandomCell(grid, (cell) => cell.hasGold = true);
 
-    _computePercepts(grid);
+    recomputePercepts(grid);
     grid[0][0].isVisited = true;
     return grid;
   }
@@ -41,10 +41,20 @@ class WumpusWorldGenerator {
     place(target);
   }
 
-  void _computePercepts(List<List<Cell>> grid) {
+  /// Recomputes Breeze/Stench for every cell from scratch. Exposed as a
+  /// `static` utility (not just a private instance method) so gameplay
+  /// code can call it again after the world changes mid-game — e.g. after
+  /// the Wumpus is slain by an arrow, its stench should vanish everywhere.
+  static void recomputePercepts(List<List<Cell>> grid) {
+    for (final row in grid) {
+      for (final cell in row) {
+        cell.hasBreeze = false;
+        cell.hasStench = false;
+      }
+    }
     for (int r = 0; r < size; r++) {
       for (int c = 0; c < size; c++) {
-        for (final neighbour in _neighboursOf(grid, r, c)) {
+        for (final neighbour in neighboursOf(grid, r, c)) {
           if (neighbour.hasPit) grid[r][c].hasBreeze = true;
           if (neighbour.hasWumpus) grid[r][c].hasStench = true;
         }
@@ -52,7 +62,7 @@ class WumpusWorldGenerator {
     }
   }
 
-  List<Cell> _neighboursOf(List<List<Cell>> grid, int r, int c) {
+  static List<Cell> neighboursOf(List<List<Cell>> grid, int r, int c) {
     const deltas = [
       [-1, 0],
       [1, 0],

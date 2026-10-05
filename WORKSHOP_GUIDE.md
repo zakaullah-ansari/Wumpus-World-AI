@@ -220,6 +220,14 @@ Full, runnable versions of all files below live in this repo:
 - **Reference solution:** [`wumpus_world_ai/`](./wumpus_world_ai)
 - **Student starter kit (fill-in-the-blanks):** [`wumpus_world_ai/starter_kit/`](./wumpus_world_ai/starter_kit) — search for `TODO (BLOCK` to find all 5 exercises
 
+> **Stretch content:** the reference solution also includes four features
+> beyond the 120-minute core scope — 🏹 arrow-shooting to slay the Wumpus,
+> a 🪜 "Climb Out" win condition, a 🎬 animated win/lose result dialog, a
+> 🔍 tap-to-inspect cell detail panel, and a 🌗 light/dark theme toggle.
+> These are documented as optional take-home "Stretch Goals" in
+> `starter_kit/README.md` for students who finish the 5 core exercises
+> early, rather than bloated into the timed agenda above.
+
 ### a) `RiskEvaluationMixin` — scoring & risk assessment
 
 ```dart

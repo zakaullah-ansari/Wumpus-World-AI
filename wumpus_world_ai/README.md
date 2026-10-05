@@ -30,6 +30,24 @@ free [Groq](https://console.groq.com/keys) (or Gemini-compatible) API key.
 If you skip this, the app still runs — `AiAdvisorService` fails gracefully
 and shows a fallback message instead of crashing.
 
+## Beyond the 120-minute core curriculum
+
+The reference solution also ships four **extended / stretch features**
+that go past the core workshop scope — useful as a trainer demo of "where
+this could go next," or as take-home extensions for fast finishers:
+
+| Feature | Where | What it adds |
+|---|---|---|
+| 🏹 Arrow-shooting | `game_screen.dart` (`_shootArrow`), `wumpus_world_generator.dart` (`recomputePercepts`) | Classic Wumpus World action: fire in a straight line, slay the Wumpus, silence its Stench everywhere |
+| 🪜 Climb-out win condition | `game_screen.dart` (`_climbOut`, `_canClimbOut`) | Return to (0,0) with the gold and explicitly climb out to win (vs. only losing by death) |
+| 🎬 Animated win/lose dialog | `game_screen.dart` (`_endGame`, `showGeneralDialog` + `CurvedAnimation`) | A scale/fade "victory" or "game over" entrance animation instead of a flat `AlertDialog` |
+| 🔍 Cell-inspect panel | `game_screen.dart` (`_showCellDetails`) | Tap any discovered/visited tile for a bottom sheet of what's actually known about it — still respects fog-of-war |
+| 🌗 Dark mode | `lib/theme/theme_controller.dart`, `lib/widgets/theme_toggle_button.dart` | A global light/dark "cave" theme toggle shared via a single `ValueNotifier`, demonstrating minimal shared Application State without a state-management package |
+
+These are intentionally **not** part of the starter kit's 5 core TODOs —
+see `starter_kit/README.md`'s "Stretch Goals" section if you want to offer
+them to students who finish early.
+
 ## Folder map
 
 | Path | Syllabus area |

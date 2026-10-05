@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/auth_service.dart';
 import '../services/firestore_service.dart';
+import '../widgets/theme_toggle_button.dart';
 import 'game_screen.dart';
 import 'leaderboard_screen.dart';
 
@@ -48,6 +49,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Wumpus World AI'),
+        actions: const [ThemeToggleButton()],
+      ),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

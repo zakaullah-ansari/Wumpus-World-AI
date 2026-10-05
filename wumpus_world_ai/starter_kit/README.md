@@ -33,3 +33,25 @@ expected! You'll fix each one, block by block.
    into `lib/screens/home_screen.dart` where you see `YOUR_API_KEY_HERE`.
 
 Good luck, Explorer — don't step on a Wumpus. 🕳️
+
+## Stretch Goals (optional — if you finish all 5 exercises early)
+
+The trainer's reference solution (`../lib/`) implements four extra features
+past the core curriculum. Once your 5 TODOs are working, try adding one
+yourself (peek at the reference solution if you get stuck):
+
+1. **🏹 Arrow-shooting** — give the agent an `arrows` counter (already on
+   the `Agent` model!) and a "shoot" action that fires in a straight line
+   until it hits the Wumpus or exits the grid. Don't forget to recompute
+   Stench everywhere once the Wumpus is dead.
+2. **🪜 A real win condition** — right now the game only ends in death.
+   Add a "Climb Out" button, enabled only when the agent is back at (0,0)
+   carrying the gold, that ends the game as a win.
+3. **🎬 A nicer result screen** — swap the plain `AlertDialog` for a
+   `showGeneralDialog` with a custom `transitionBuilder` (try `Transform.scale`
+   driven by a `CurvedAnimation`) for an animated win/lose entrance.
+4. **🔍 A cell-inspect panel** — wire up `CaveGrid`'s `onCellTap` to open a
+   `showModalBottomSheet` summarizing what's known about that cell. Be
+   careful not to leak information the fog-of-war hasn't earned yet!
+5. **🌗 Dark mode** — add a `ValueNotifier<ThemeMode>` and a toggle button
+   in the AppBar, consumed by `MaterialApp`'s `themeMode`.

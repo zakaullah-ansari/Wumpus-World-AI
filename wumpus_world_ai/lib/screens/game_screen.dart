@@ -6,12 +6,19 @@ import '../services/ai_advisor_service.dart';
 import '../services/firestore_service.dart';
 import '../widgets/cave_grid.dart';
 import '../widgets/move_history_list.dart';
+import '../widgets/theme_toggle_button.dart';
 import '../world/wumpus_world_generator.dart';
 import 'leaderboard_screen.dart';
 
 /// The main gameplay screen: owns the grid, the agent, fog-of-war reveals,
 /// and wires together local reasoning (RiskEvaluationMixin), the async AI
 /// REST advisor, and the Firestore leaderboard write-back.
+///
+/// EXTENDED (post-core-workshop) features on top of the base curriculum:
+///   - Arrow-shooting to slay the Wumpus (classic Wumpus World action)
+///   - A "Climb Out" win condition once the agent returns to (0,0) with gold
+///   - An animated win/lose result dialog
+///   - A tap-to-inspect cell detail panel that respects fog-of-war
 class GameScreen extends StatefulWidget {
   final AiAdvisorService aiAdvisorService;
   final FirestoreService firestoreService;
@@ -40,6 +47,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Cell get _currentCell => _grid[_agent.row][_agent.col];
+  bool get _canClimbOut => _agent.row == 0 && _agent.col == 0 && _agent.hasGold;
 
   /// EPHEMERAL STATE (Syllabus #3): every grid movement only matters for
   /// *this* screen's lifetime, so a plain `setState` is the right tool —
@@ -60,13 +68,59 @@ class _GameScreenState extends State<GameScreen> {
 
       if (_currentCell.hasPit || _currentCell.hasWumpus) {
         _agent.applyDeathPenalty();
-        _endGame('💀 You were ambushed! Final score: ${_agent.score}');
+        _endGame(
+          _currentCell.hasPit
+              ? '💀 You fell into a bottomless pit! Final score: ${_agent.score}'
+              : '💀 The Wumpus got you! Final score: ${_agent.score}',
+          didWin: false,
+        );
       } else if (_currentCell.hasGold && !_agent.hasGold) {
         _agent.hasGold = true;
         _agent.applyGoldBonus();
-        _agent.recordMove('✨ Picked up the Gold!');
+        _agent.recordMove('✨ Picked up the Gold! Head back to (1,1) and Climb Out.');
       }
     });
+  }
+
+  /// EXTENDED: classic Wumpus World arrow-shooting. Fires in a straight
+  /// line from the agent's current cell until it either hits the Wumpus
+  /// (killing it and silencing every Stench on the board) or exits the grid.
+  void _shootArrow(int dRow, int dCol) {
+    if (_gameOver || _agent.arrows <= 0) return;
+
+    setState(() {
+      _agent.arrows--;
+      _agent.applyArrowCost();
+
+      bool hit = false;
+      int r = _agent.row + dRow;
+      int c = _agent.col + dCol;
+      while (r >= 0 && r < 4 && c >= 0 && c < 4) {
+        if (_grid[r][c].hasWumpus) {
+          _grid[r][c].hasWumpus = false;
+          WumpusWorldGenerator.recomputePercepts(_grid);
+          hit = true;
+          break;
+        }
+        r += dRow;
+        c += dCol;
+      }
+
+      _agent.recordMove(
+        hit ? '🏹 A scream echoes through the cave — the Wumpus is slain!' : '🏹 The arrow vanishes into the dark. Miss.',
+      );
+    });
+  }
+
+  /// EXTENDED: the actual Wumpus World win condition — return to the start
+  /// cell carrying the gold, then explicitly climb out.
+  void _climbOut() {
+    if (_gameOver || !_canClimbOut) return;
+    setState(() {
+      _agent.applyClimbOutBonus();
+      _agent.recordMove('🪜 Climbed out of the cave with the gold!');
+    });
+    _endGame('🏆 You escaped the cave with the gold! Final score: ${_agent.score}', didWin: true);
   }
 
   /// Fog-of-war reveal: entering a cell fully reveals it; its neighbours
@@ -78,22 +132,41 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  List<Cell> _neighboursOf(int r, int c) {
-    const deltas = [
-      [-1, 0],
-      [1, 0],
-      [0, -1],
-      [0, 1],
-    ];
-    final result = <Cell>[];
-    for (final d in deltas) {
-      final nr = r + d[0];
-      final nc = c + d[1];
-      if (nr >= 0 && nr < 4 && nc >= 0 && nc < 4) {
-        result.add(_grid[nr][nc]);
-      }
-    }
-    return result;
+  List<Cell> _neighboursOf(int r, int c) => WumpusWorldGenerator.neighboursOf(_grid, r, c);
+
+  /// EXTENDED: tap-to-inspect panel. Respects fog-of-war — a hidden cell
+  /// reveals nothing, a merely "discovered" cell only reveals that *some*
+  /// neighbour sensed danger (not which one), and a fully "visited" cell
+  /// shows everything the agent actually witnessed first-hand.
+  void _showCellDetails(Cell cell) {
+    if (cell.isHidden) return;
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Cell (${cell.row + 1}, ${cell.col + 1})',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            if (cell.isVisited) ...[
+              Text(cell.isSafe ? '✅ Confirmed safe — you stood here.' : '⚠️ This is where the run ended.'),
+              if (cell.hasGold) const Text('✨ Gold was found here.'),
+            ] else ...[
+              const Text('🌫️ Not yet explored — only sensed from a neighbouring cell.'),
+            ],
+            const SizedBox(height: 8),
+            Text(cell.hasBreeze ? '💨 Breeze detected adjacent to this cell.' : 'No breeze sensed nearby.'),
+            Text(cell.hasStench ? '🤢 Stench detected adjacent to this cell.' : 'No stench sensed nearby.'),
+          ],
+        ),
+      ),
+    );
   }
 
   /// Calls the AI REST API asynchronously (Future + async/await,
@@ -117,8 +190,8 @@ class _GameScreenState extends State<GameScreen> {
     }
   }
 
-  Future<void> _endGame(String message) async {
-    _gameOver = true;
+  Future<void> _endGame(String message, {required bool didWin}) async {
+    setState(() => _gameOver = true);
     try {
       await widget.firestoreService.submitRun(
         playerName: 'Explorer', // swap for FirebaseAuth displayName in Block 3
@@ -129,29 +202,54 @@ class _GameScreenState extends State<GameScreen> {
       // Non-fatal: a failed leaderboard sync should never block the dialog.
     }
     if (!mounted) return;
-    showDialog(
+
+    // EXTENDED: an animated win/lose overlay (scale + fade in) instead of a
+    // flat AlertDialog pop, using showGeneralDialog's transitionBuilder.
+    showGeneralDialog(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Run complete'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => LeaderboardScreen(firestoreService: widget.firestoreService),
+      barrierDismissible: false,
+      barrierLabel: 'Result',
+      barrierColor: Colors.black54,
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (context, anim1, anim2) => const SizedBox.shrink(),
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.elasticOut);
+        return Opacity(
+          opacity: animation.value.clamp(0.0, 1.0).toDouble(),
+          child: Transform.scale(
+            scale: curved.value.clamp(0.0, 1.3).toDouble(),
+            child: AlertDialog(
+              icon: Icon(
+                didWin ? Icons.emoji_events : Icons.dangerous,
+                color: didWin ? Colors.amber : Colors.redAccent,
+                size: 48,
               ),
+              title: Text(didWin ? 'Victory!' : 'Game Over'),
+              content: Text(message),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (_) => LeaderboardScreen(firestoreService: widget.firestoreService),
+                    ),
+                  ),
+                  child: const Text('View Leaderboard'),
+                ),
+              ],
             ),
-            child: const Text('View Leaderboard'),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Wumpus World AI — Score: ${_agent.score}')),
+      appBar: AppBar(
+        title: Text('Wumpus World AI — Score: ${_agent.score}'),
+        actions: const [ThemeToggleButton()],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -161,11 +259,11 @@ class _GameScreenState extends State<GameScreen> {
                 grid: _grid,
                 agentRow: _agent.row,
                 agentCol: _agent.col,
-                onCellTap: (_) {}, // hook: students can add tap-to-inspect
+                onCellTap: _showCellDetails,
               ),
             ),
           ),
-          _buildDPad(),
+          _buildControls(),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Row(
@@ -183,6 +281,25 @@ class _GameScreenState extends State<GameScreen> {
           Expanded(flex: 2, child: MoveHistoryList(moves: _agent.moveHistory)),
         ],
       ),
+    );
+  }
+
+  Widget _buildControls() {
+    return Column(
+      children: [
+        _buildDPad(),
+        const SizedBox(height: 4),
+        _buildShootRow(),
+        const SizedBox(height: 4),
+        ElevatedButton.icon(
+          onPressed: _canClimbOut ? _climbOut : null,
+          icon: const Icon(Icons.exit_to_app),
+          label: const Text('Climb Out'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _canClimbOut ? Colors.amber : null,
+          ),
+        ),
+      ],
     );
   }
 
@@ -210,6 +327,42 @@ class _GameScreenState extends State<GameScreen> {
         IconButton(
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => _move(1, 0),
+        ),
+      ],
+    );
+  }
+
+  /// EXTENDED: arrow-shooting controls, reusing the same D-pad layout but
+  /// styled distinctly (outline icons) and labelled with remaining arrows.
+  Widget _buildShootRow() {
+    final canShoot = !_gameOver && _agent.arrows > 0;
+    return Column(
+      children: [
+        Text('🏹 Arrows left: ${_agent.arrows}', style: const TextStyle(fontSize: 12)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton(
+              tooltip: 'Shoot up',
+              icon: const Icon(Icons.arrow_upward),
+              onPressed: canShoot ? () => _shootArrow(-1, 0) : null,
+            ),
+            IconButton(
+              tooltip: 'Shoot left',
+              icon: const Icon(Icons.arrow_back),
+              onPressed: canShoot ? () => _shootArrow(0, -1) : null,
+            ),
+            IconButton(
+              tooltip: 'Shoot right',
+              icon: const Icon(Icons.arrow_forward),
+              onPressed: canShoot ? () => _shootArrow(0, 1) : null,
+            ),
+            IconButton(
+              tooltip: 'Shoot down',
+              icon: const Icon(Icons.arrow_downward),
+              onPressed: canShoot ? () => _shootArrow(1, 0) : null,
+            ),
+          ],
         ),
       ],
     );
