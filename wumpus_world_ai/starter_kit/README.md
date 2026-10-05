@@ -55,3 +55,11 @@ yourself (peek at the reference solution if you get stuck):
    careful not to leak information the fog-of-war hasn't earned yet!
 5. **🌗 Dark mode** — add a `ValueNotifier<ThemeMode>` and a toggle button
    in the AppBar, consumed by `MaterialApp`'s `themeMode`.
+
+**Want to go even further?** The reference solution has a second, deeper
+extension pass — a full Riverpod state-management refactor, difficulty
+levels/settings, player profiles & stats, confetti/animated-score polish,
+a How to Play screen, and accessibility/responsive-layout work. See the
+"v2: State management, UI/UX, and feature enhancement" section of
+`../README.md` if you want to study (or attempt) that version after
+you're comfortable with the basics here.

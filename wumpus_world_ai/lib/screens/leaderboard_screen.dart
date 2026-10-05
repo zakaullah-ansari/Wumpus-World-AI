@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/service_providers.dart';
 import '../services/firestore_service.dart';
 
 /// Streams the global top 10 safe cave runs live from Cloud Firestore.
@@ -8,13 +10,16 @@ import '../services/firestore_service.dart';
 /// (another player finishing a run, anywhere in the world, updates every
 /// open leaderboard instantly). Compare this with [FutureBuilder], which
 /// resolves ONCE and then goes quiet.
-class LeaderboardScreen extends StatelessWidget {
-  final FirestoreService firestoreService;
-
-  const LeaderboardScreen({super.key, required this.firestoreService});
+///
+/// CODE enhancement: now a `ConsumerWidget` that reads [FirestoreService]
+/// from `firestoreServiceProvider` instead of taking it as a constructor
+/// parameter threaded through every screen that might navigate here.
+class LeaderboardScreen extends ConsumerWidget {
+  const LeaderboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final firestoreService = ref.watch(firestoreServiceProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('🏆 Top Safe Cave Runs')),
       body: StreamBuilder<List<LeaderboardEntry>>(
