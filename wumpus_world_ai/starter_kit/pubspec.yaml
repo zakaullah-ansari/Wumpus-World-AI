@@ -5,26 +5,32 @@ description: >
 publish_to: 'none'
 version: 1.0.0+1
 
+# Versions below were cross-checked live against pub.dev's package API
+# (https://pub.dev/api/packages/<name>) to track each plugin's actual
+# latest release and its declared `environment.sdk` constraint, since no
+# Flutter/Dart toolchain was available in the authoring sandbox to run
+# `flutter pub get` directly.
 environment:
-  sdk: '>=3.3.0 <4.0.0'
+  sdk: '>=3.6.0 <4.0.0'
+  flutter: '>=3.27.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.6
+  cupertino_icons: ^2.0.0
 
   # REST API Integration (Syllabus #4) – no native ML SDK required.
-  http: ^1.2.1
+  http: ^1.6.0
 
   # Firebase Auth + Firestore (Syllabus #4)
-  firebase_core: ^2.27.0
-  firebase_auth: ^4.17.4
-  cloud_firestore: ^4.15.5
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.0
+  flutter_lints: ^6.0.0
 
 flutter:
   uses-material-design: true

@@ -4,6 +4,26 @@ This is the **complete, working reference implementation** used by the
 trainer. Students should NOT be given this folder before the workshop ends —
 hand them `../starter_kit` instead.
 
+## Build verification note
+
+This project was authored in a sandbox with **no network access to
+Flutter/Dart's distribution infrastructure** (`storage.googleapis.com`),
+so `flutter pub get` / `flutter analyze` could not be run directly here.
+To compensate:
+
+1. Every `.dart` file was manually reviewed for syntax, type, and
+   null-safety correctness (two real issues were caught and fixed this way:
+   a `num`→`double` cast on an `Animation.value.clamp()`, and a `setState`
+   that was missing around a state mutation).
+2. All `pubspec.yaml` dependency versions were cross-checked **live**
+   against pub.dev's package API (`https://pub.dev/api/packages/<name>`)
+   to confirm they're current, mutually compatible releases rather than
+   stale/guessed version numbers — see the comment above `environment:`
+   in `pubspec.yaml`.
+
+**Please still run `flutter pub get && flutter analyze` yourself once**
+before the workshop as a final sanity check.
+
 ## Run it
 
 ```bash
